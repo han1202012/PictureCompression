@@ -92,3 +92,50 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
     // 释放局部引用
     env->ReleaseStringUTFChars(path, filePath);
 }
+
+
+
+void write_JPEG_file(uint8_t *data, int w, int h, jint q, const char *path) {
+//    3.1、创建jpeg压缩对象
+    jpeg_compress_struct jcs;
+    //错误回调
+    jpeg_error_mgr error;
+    jcs.err = jpeg_std_error(&error);
+    //创建压缩对象
+    jpeg_create_compress(&jcs);
+
+//    3.2、指定存储文件
+    // w = 写,b = 二进制
+    FILE *f = fopen(path,"wb");
+    jpeg_stdio_dest(&jcs,f);
+//    3.3、设置压缩参数
+    jcs.image_width = w;
+    jcs.image_height = h;
+    //bgr
+    jcs.input_components = 3;
+    jcs.in_color_space =  JCS_RGB;
+    jpeg_set_defaults(&jcs);
+    //开启哈夫曼 1=true 0=false
+    jcs.optimize_coding = 1;
+    jpeg_set_quality(&jcs, q, 1);
+
+//    3.4、开始压缩
+    jpeg_start_compress(&jcs,1);
+//    3.5、循环写入每一行数据
+    int row_stride = w * 3;
+    //next_scanline 一行数据开头的位置
+    JSAMPROW row[1];
+    while (jcs.next_scanline < jcs.image_height) {
+        //拿一行数据
+        uint8_t *pixels = data + jcs.next_scanline * row_stride;
+        row[0] = pixels;
+        jpeg_write_scanlines(&jcs, row, 1);
+    }
+
+//    3.6、压缩完成
+    jpeg_finish_compress(&jcs);
+//    3.7、释放jpeg对象
+
+    fclose(f);
+    jpeg_destroy_compress(&jcs);
+}
