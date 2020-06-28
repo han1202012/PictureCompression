@@ -100,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
 
     public native String stringFromJNI();
 
+    public native void native_pictureCompress(Bitmap bitmap, int quality, String path);
+
 
     /**
      * 需要获取的权限列表
