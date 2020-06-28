@@ -12,9 +12,12 @@ Java_kim_hsl_pc_MainActivity_stringFromJNI(
         JNIEnv* env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
+
+    // 测试 libturbojpeg.a 函数库
     jpeg_compress_struct jcs;
     __android_log_print(ANDROID_LOG_INFO, "JPEG", "jpeg_compress_struct jcs = %d", jcs.image_width);
     hello = hello + " , jpeg_compress_struct jcs = " + std::to_string(jcs.image_width);
+
     return env->NewStringUTF(hello.c_str());
 }
 
