@@ -69,31 +69,21 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
 
     // JPEG 像素中的 RGB 三原色, 红绿蓝
     uint8_t red, green, blue;
+
+    // 遍历从 Bitmap 内存 addrPtr 中读取 BGRA 数据, 然后向 data 内存存储 BGR 数据中
     for(int i = 0; i < height; i++){
         for (int j = 0; j < width; ++j) {
-            // addrPtr 内存中的数据排列时 ARGB
-            // 正好将一组像素数据存储在 int 数据中
-            // 先转成 int 指针类型, 然后解引用, 获取实际的 int 值
-            color = *(int*)addrPtr;
+            // 在 Bitmap 中内存存储序列是 BGRA
+            blue = *( addrPtr );
+            green = *( addrPtr + 1 );
+            red = *( addrPtr + 2 );
 
-            // 最高字节是透明度信息不读取
-
-            // 右移 2 字节, 最低位是 第 3 字节信息, 该信息是 red 信息
-            red = (color >> 16) & 0xFF;
-            // 右移 1 字节, 最低位是 第 2 字节信息, 该信息是 green 信息
-            green = (color >> 8) & 0xFF;
-            // 最低位是 第 1 字节信息, 该信息是 blue 信息
-            blue = color & 0xFF;
-
-
-
-            /**
-             * 以前主流bgr
-             * libjpeg  bgr
-             */
+            // libturbojpeg 中 JPEG 图像内存排列格式是 BGR
             *data = blue;
             *( data + 1 ) = green;
             *( data + 2 ) = red;
+
+            // 移动 data 指针
             data += 3;
 
             //移动 addrPtr 指针, 为下一次读取数据做准备
