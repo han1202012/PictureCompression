@@ -55,6 +55,10 @@ public class MainActivity extends AppCompatActivity {
         compressBitmap(R.drawable.blog, Bitmap.CompressFormat.PNG, 0,
                 Environment.getExternalStorageDirectory() + "/blog_png_half.png",
                 995, 510);
+
+        // 使用 NDK 中的压缩方法
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.blog);
+        native_pictureCompress(bitmap,0,Environment.getExternalStorageDirectory()+"/blog_jpeg_native.jpeg");
     }
 
     /**
