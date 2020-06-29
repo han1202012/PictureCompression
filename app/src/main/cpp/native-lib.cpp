@@ -7,6 +7,7 @@
 #include <bitset>
 #include <iosfwd>
 
+// 声明函数
 void compressJpegFile(uint8_t *data, int width, int height, jint quality, const char *filePath);
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -54,9 +55,6 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
     // 获取图片的像素高度
     int height = info.height;
 
-    // 单个像素点的颜色值, ARGB 每个都是 1 byte, 总共 4 字节, 刚好可以存储在 int 中
-    int color;
-
     //rgb
     uint8_t* data = (uint8_t *) malloc(width * height * 3);
 
@@ -81,20 +79,19 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
 
             // 移动 data 指针
             data += 3;
-
             //移动 addrPtr 指针, 为下一次读取数据做准备
             addrPtr +=4;
         }
-    }
+    }// 截止到此处, 已经读取出 JPEG 图片所需的数据, 在 data 指针中
 
+    // 将 data 指针中的数据压缩到 JPEG 格式图片中
     compressJpegFile(temp, width, height, quality, filePath);
 
+    // 解锁
     AndroidBitmap_unlockPixels(env,jbitmap);
-
-    // 注意要释放 temp 指针 , 不要释放成 data 指针
+    // 注意要释放 temp 指针 , 不要释放成 data 指针, 否则会出错
     free(temp);
-
-    // 释放局部引用
+    // 释放局部引用, 不释放, GC 也会回收, 但是有延迟
     env->ReleaseStringUTFChars(path, filePath);
 }
 
@@ -102,6 +99,10 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
 
 /**
  * 压缩 Jpeg 图片
+ *
+ * 完整的带详细注释的代码示例参考源码 libjpeg-turbo-2.0.5/example.txt 示例文件
+ * 里面有详细的定义图片压缩的过程
+ *
  * @param data
  * @param width
  * @param height
@@ -110,49 +111,62 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
  */
 void compressJpegFile(uint8_t *data, int width, int height, jint quality, const char *filePath) {
 
-//    3.1、创建jpeg压缩对象
-    jpeg_compress_struct jcs;
-    //错误回调
-    jpeg_error_mgr error;
-    jcs.err = jpeg_std_error(&error);
+
+    // 1. 为 JPEG 图片压缩对象, 分配内存空间
+    struct jpeg_compress_struct cinfo;
+
+    /* 为了防止 JPEG 压缩对象初始化时出错, 这里首先设置错误处理
+     * 在内存不足时, 创建 jpeg_compress_struct 可能会失败
+     *
+     */
+    struct jpeg_error_mgr jerr;
+    cinfo.err = jpeg_std_error(&jerr);
 
     //创建压缩对象
-    jpeg_create_compress(&jcs);
+    jpeg_create_compress(&cinfo);
 
-//    3.2、指定存储文件
-    // w = 写,b = 二进制
+    // 2. 打开文件, 准备向文件写出二进制数据
+    // w 代表写出数据, b 代表二进制数据
     FILE *f = fopen(filePath, "wb");
-    jpeg_stdio_dest(&jcs,f);
+    // 设置文件输出
+    jpeg_stdio_dest(&cinfo, f);
 
-//    3.3、设置压缩参数
-    jcs.image_width = width;
-    jcs.image_height = height;
-    //bgr
-    jcs.input_components = 3;
-    jcs.in_color_space =  JCS_RGB;
-    jpeg_set_defaults(&jcs);
-    //开启哈夫曼 1=true 0=false
-    jcs.optimize_coding = 1;
-    jpeg_set_quality(&jcs, quality, 1);
+    // 3. 设置压缩参数, 宽, 高
+    cinfo.image_width = width;
+    cinfo.image_height = height;
 
-//    3.4、开始压缩
-    jpeg_start_compress(&jcs,1);
 
-//    3.5、循环写入每一行数据
+    // 设置输入组件, BGR 3个
+    cinfo.input_components = 3;
+    // 颜色空间
+    cinfo.in_color_space = JCS_RGB;
+    jpeg_set_defaults(&cinfo);
+
+    // 打开哈夫曼编码
+    cinfo.optimize_coding = TRUE;
+    // 设置压缩指令
+    jpeg_set_quality(&cinfo, quality, 1);
+
+    // 4. 开始压缩 JPEG 格式图片
+    jpeg_start_compress(&cinfo, 1);
+
+    // 5. 循环写入数据
+    // 每一个行的数据个数
     int row_stride = width * 3;
+
     //next_scanline 一行数据开头的位置
     JSAMPROW row[1];
-    while (jcs.next_scanline < jcs.image_height) {
+    while (cinfo.next_scanline < cinfo.image_height) {
         //拿一行数据
-        uint8_t *pixels = data + jcs.next_scanline * row_stride;
+        uint8_t *pixels = data + cinfo.next_scanline * row_stride;
         row[0] = pixels;
-        jpeg_write_scanlines(&jcs, row, 1);
+        jpeg_write_scanlines(&cinfo, row, 1);
     }
 
-//    3.6、压缩完成
-    jpeg_finish_compress(&jcs);
-//    3.7、释放jpeg对象
+    // 6. 完成图片压缩
+    jpeg_finish_compress(&cinfo);
 
+    // 7. 释放相关资源
     fclose(f);
-    jpeg_destroy_compress(&jcs);
+    jpeg_destroy_compress(&cinfo);
 }
