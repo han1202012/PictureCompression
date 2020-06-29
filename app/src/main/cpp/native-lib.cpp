@@ -57,7 +57,10 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
     int width = info.width;
     // 获取图片的像素高度
     int height = info.height;
+
+    // 单个像素点的颜色值, ARGB 每个都是 1 byte, 总共 4 字节, 刚好可以存储在 int 中
     int color;
+
     //rgb
     uint8_t* data = (uint8_t *) malloc(width * height * 3);
 
@@ -68,23 +71,33 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
     uint8_t red, green, blue;
     for(int i = 0; i < height; i++){
         for (int j = 0; j < width; ++j) {
-            //argb = 4字节  int
-            // * =>解引用=》解释引用
-            color = *(int*)addrPtr; //0-3字节
-            //argb
+            // addrPtr 内存中的数据排列时 ARGB
+            // 正好将一组像素数据存储在 int 数据中
+            // 先转成 int 指针类型, 然后解引用, 获取实际的 int 值
+            color = *(int*)addrPtr;
+
+            // 最高字节是透明度信息不读取
+
+            // 右移 2 字节, 最低位是 第 3 字节信息, 该信息是 red 信息
             red = (color >> 16) & 0xFF;
+            // 右移 1 字节, 最低位是 第 2 字节信息, 该信息是 green 信息
             green = (color >> 8) & 0xFF;
+            // 最低位是 第 1 字节信息, 该信息是 blue 信息
             blue = color & 0xFF;
+
+
+
             /**
              * 以前主流bgr
              * libjpeg  bgr
              */
             *data = blue;
-            *(data+1) = green;
-            *(data+2) = red;
+            *( data + 1 ) = green;
+            *( data + 2 ) = red;
             data += 3;
-            //指针 跳过4个字节
-            addrPtr +=4; //4-7字节
+
+            //移动 addrPtr 指针, 为下一次读取数据做准备
+            addrPtr +=4;
         }
     }
 
