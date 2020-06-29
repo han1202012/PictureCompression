@@ -8,7 +8,8 @@
 #include <iosfwd>
 
 // 声明函数
-void compressJpegFile(uint8_t *data, int imageWidth, int imageHeight, jint compressQuality, const char *filename);
+void compressJpegFile(uint8_t *data, int imageWidth, int imageHeight,
+                      jint compressQuality, const char *filename);
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_kim_hsl_pc_MainActivity_stringFromJNI(
@@ -29,7 +30,8 @@ Java_kim_hsl_pc_MainActivity_stringFromJNI(
  */
 extern "C"
 JNIEXPORT void JNICALL
-Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, jobject jbitmap,
+Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz,
+                                                     jobject jbitmap,
                                                      jint quality, jstring path) {
 
     // 将 Java 字符串转为 C 字符串, 注意这是局部引用
@@ -109,7 +111,8 @@ Java_kim_hsl_pc_MainActivity_native_1pictureCompress(JNIEnv *env, jobject thiz, 
  * @param compressQuality   输出的 JPEG 图片质量
  * @param filename  输出文件路径
  */
-void compressJpegFile(uint8_t *data, int imageWidth, int imageHeight, jint compressQuality, const char *filename) {
+void compressJpegFile(uint8_t *data, int imageWidth, int imageHeight,
+                      jint compressQuality, const char *filename) {
 
     // 1. 为 JPEG 图片压缩对象, 分配内存空间
 
